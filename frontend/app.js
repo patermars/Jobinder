@@ -13,15 +13,30 @@ let _resumeFile = null, _resumeText = '';
 
 const _fileAnalyze = document.getElementById('file-analyze');
 const _textAnalyze = document.getElementById('resume-text-analyze');
+const _dropZone = document.getElementById('drop-zone');
+const _dropLabel = document.getElementById('drop-zone-label');
+
+function _setDropFile(file) {
+    _resumeFile = file;
+    _resumeText = '';
+    _textAnalyze.value = '';
+    _dropZone.classList.add('has-file');
+    _dropLabel.innerHTML = `<strong>${file.name}</strong> &mdash; click to change`;
+    _clearMatchCache();
+}
 
 _fileAnalyze.addEventListener('change', e => {
     const file = e.target.files[0];
-    if (!file) return;
-    _resumeFile = file;
-    _resumeText = '';
-    document.getElementById('file-name-analyze').textContent = file.name;
-    _textAnalyze.value = '';
-    _clearMatchCache();
+    if (file) _setDropFile(file);
+});
+
+_dropZone.addEventListener('dragover', e => { e.preventDefault(); _dropZone.classList.add('drag-over'); });
+_dropZone.addEventListener('dragleave', () => _dropZone.classList.remove('drag-over'));
+_dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    _dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) _setDropFile(file);
 });
 
 _textAnalyze.addEventListener('input', e => {
@@ -332,6 +347,7 @@ function _buildCard(m) {
             ${m.category_match ? `<span style="color:var(--emerald)">✓ Category</span>` : ''}
             <span>Coverage ${m.skill_coverage || 0}%</span>
         </div>
+        ${m.description ? `<p class="swipe-card-desc">${m.description.substring(0, 180)}${m.description.length > 180 ? '…' : ''}</p>` : ''}
         ${m.skill_overlap?.length ? `<div class="swipe-card-skills"><div class="skills-label">Matched Skills</div><div class="skill-tags">${renderSkillTags(m.skill_overlap, 'matched', 6)}</div></div>` : ''}
         ${m.missing_skills?.length ? `<div class="swipe-card-skills"><div class="skills-label">Missing Skills</div><div class="skill-tags">${renderSkillTags(m.missing_skills, 'missing', 5)}</div></div>` : ''}
     `;
@@ -454,9 +470,11 @@ function renderFullAnalysis(data) {
                 <div class="match-meta">
                     ${m.location ? `<span>📍 ${m.location}</span>` : ''}
                     ${m.salary_range ? `<span>💰 ${m.salary_range}</span>` : ''}
+                    <span>Coverage ${m.skill_coverage || 0}%</span>
                 </div>
-                ${m.skill_overlap?.length ? `<div class="skill-tags" style="margin-bottom:6px">${renderSkillTags(m.skill_overlap, 'matched', 6)}</div>` : ''}
-                ${m.missing_skills?.length ? `<div class="skill-tags">${renderSkillTags(m.missing_skills, 'missing', 6)}</div>` : ''}
+                ${m.description ? `<p style="font-size:0.82rem;color:var(--text-secondary);line-height:1.6;margin-bottom:10px">${m.description.substring(0, 200)}${m.description.length > 200 ? '…' : ''}</p>` : ''}
+                ${m.skill_overlap?.length ? `<div style="margin-bottom:4px"><span style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--emerald)">Matched</span><div class="skill-tags" style="margin-top:4px">${renderSkillTags(m.skill_overlap, 'matched', 6)}</div></div>` : ''}
+                ${m.missing_skills?.length ? `<div style="margin-top:6px"><span style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--rose)">Missing</span><div class="skill-tags" style="margin-top:4px">${renderSkillTags(m.missing_skills, 'missing', 6)}</div></div>` : ''}
             </div>
         `).join('');
     }
