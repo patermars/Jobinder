@@ -486,9 +486,162 @@ body {
     margin: 14px 0 6px;
 }
 
+/* SWIPE DECK */
+.swipe-deck-wrapper, #swipe-deck-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+#swipe-deck {
+    position: relative;
+    width: 380px;
+    height: 480px;
+}
+
+.swipe-card {
+    position: absolute;
+    inset: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.10);
+    cursor: grab;
+    user-select: none;
+    transition: box-shadow 0.15s ease;
+    overflow-y: auto;
+    will-change: transform;
+}
+
+.swipe-card:active { cursor: grabbing; }
+
+.swipe-card:nth-child(2) { transform: rotate(-1.5deg) translateY(6px) scale(0.97); z-index: 1; }
+.swipe-card:nth-child(3) { transform: rotate(1deg) translateY(12px) scale(0.94); z-index: 0; }
+.swipe-card:nth-child(n+4) { display: none; }
+.swipe-card:first-child { z-index: 10; }
+
+.swipe-card.is-dragging { transition: none; box-shadow: 0 16px 48px rgba(0,0,0,0.18); }
+
+.swipe-overlay {
+    position: absolute;
+    top: 20px;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    opacity: 0;
+    pointer-events: none;
+    border: 3px solid;
+    transition: opacity 0.1s;
+}
+.swipe-overlay.like { left: 20px; color: var(--emerald); border-color: var(--emerald); transform: rotate(-15deg); }
+.swipe-overlay.nope { right: 20px; color: var(--rose); border-color: var(--rose); transform: rotate(15deg); }
+
+.swipe-card-rank {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.swipe-card-title { font-size: 1.15rem; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.swipe-card-company { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 14px; }
+
+.swipe-score-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    margin-bottom: 14px;
+    overflow: hidden;
+}
+.swipe-score-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+
+.swipe-card-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.swipe-card-meta span { font-size: 0.78rem; color: var(--text-secondary); }
+
+.swipe-card-skills { margin-bottom: 12px; }
+.swipe-card-skills .skills-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+}
+
+.swipe-done {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+.swipe-done svg { opacity: 0.2; margin-bottom: 12px; }
+.swipe-done p { font-size: 0.95rem; margin-bottom: 6px; }
+.swipe-done small { font-size: 0.8rem; color: var(--text-muted); }
+
+.swipe-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.swipe-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: var(--shadow-md);
+}
+.swipe-btn:hover { transform: scale(1.1); }
+.swipe-btn:active { transform: scale(0.95); }
+
+.swipe-pass { width: 56px; height: 56px; background: #fff; color: var(--rose); border: 2px solid #FECACA; }
+.swipe-pass:hover { background: var(--rose-bg); }
+.swipe-like { width: 64px; height: 64px; background: var(--emerald); color: #fff; }
+.swipe-like:hover { background: #047857; }
+.swipe-undo { width: 44px; height: 44px; background: #fff; color: var(--text-muted); border: 2px solid var(--border); }
+.swipe-undo:hover { background: var(--bg); }
+
+.swipe-liked-list {
+    width: 380px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+}
+.swipe-liked-list h4 {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+.swipe-liked-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+}
+.swipe-liked-item:last-child { border-bottom: none; }
+.swipe-liked-item .job-name { font-weight: 600; color: var(--text); }
+.swipe-liked-item .job-co { color: var(--text-secondary); font-size: 0.78rem; }
+
 @media (max-width: 900px) {
     .content-grid { grid-template-columns: 1fr; }
     .navbar { flex-direction: column; height: auto; gap: 10px; padding: 12px 16px; }
     .nav-tabs { overflow-x: auto; width: 100%; }
     .main-content { padding: 16px; }
+    #swipe-deck, .swipe-liked-list { width: calc(100vw - 64px); }
+    #swipe-deck { height: 420px; }
 }

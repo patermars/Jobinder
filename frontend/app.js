@@ -186,28 +186,140 @@ async function fullAnalysis() {
     setLoading('btn-full-analysis', false);
 }
 
+// ── Swipe Deck ──────────────────────────────────────────────────────────────
+let _swipeMatches = [], _swipeIndex = 0, _swipeLiked = [], _swipeHistory = [];
+
 function renderMatchResults(matches) {
     const el = document.getElementById('match-results');
-    if (!matches?.length) { el.innerHTML = '<div class="empty-state"><p>No matches found. Try adding jobs first.</p></div>'; return; }
-    el.innerHTML = matches.map((m, i) => `
-        <div class="match-card" style="animation-delay:${i * 0.05}s">
-            <div class="match-card-header">
-                <div>
-                    <div class="match-card-title">${m.job_title}</div>
-                    <div class="match-card-company">${m.company}</div>
-                </div>
-                <span class="match-score-badge ${scoreBadgeClass(m.score)}">${m.score}%</span>
-            </div>
-            <div class="match-meta">
-                ${m.location ? `<span>📍 ${m.location}</span>` : ''}
-                ${m.salary_range ? `<span>💰 ${m.salary_range}</span>` : ''}
-                ${m.category_match ? `<span>✓ Category match</span>` : ''}
-                <span>Coverage: ${m.skill_coverage || 0}%</span>
-            </div>
-            ${m.skill_overlap?.length ? `<div style="margin-bottom:8px"><div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px">Matched</div><div class="skill-tags">${renderSkillTags(m.skill_overlap, 'matched', 6)}</div></div>` : ''}
-            ${m.missing_skills?.length ? `<div><div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px">Missing</div><div class="skill-tags">${renderSkillTags(m.missing_skills, 'missing', 6)}</div></div>` : ''}
+    const wrapper = document.getElementById('swipe-deck-wrapper');
+    if (!matches?.length) {
+        el.innerHTML = '<div class="empty-state"><p>No matches found. Try adding jobs first.</p></div>';
+        el.classList.remove('hidden');
+        wrapper.classList.add('hidden');
+        return;
+    }
+    el.classList.add('hidden');
+    wrapper.classList.remove('hidden');
+    _swipeMatches = matches;
+    _swipeIndex = 0;
+    _swipeLiked = [];
+    _swipeHistory = [];
+    document.getElementById('swipe-liked-list').classList.add('hidden');
+    _renderDeck();
+}
+
+function _renderDeck() {
+    const deck = document.getElementById('swipe-deck');
+    deck.innerHTML = '';
+    const remaining = _swipeMatches.slice(_swipeIndex);
+    if (!remaining.length) {
+        deck.innerHTML = `<div class="swipe-done">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <p>You've seen all matches!</p>
+            <small>${_swipeLiked.length} job${_swipeLiked.length !== 1 ? 's' : ''} liked</small>
+        </div>`;
+        _renderLikedList();
+        return;
+    }
+    // render top 3 cards (stacked)
+    remaining.slice(0, 3).reverse().forEach(m => {
+        deck.appendChild(_buildCard(m));
+    });
+    _attachDrag(deck.lastElementChild, remaining[0]);
+}
+
+function _buildCard(m) {
+    const color = scoreColor(m.score);
+    const card = document.createElement('div');
+    card.className = 'swipe-card';
+    card.innerHTML = `
+        <div class="swipe-overlay like">LIKE 👍</div>
+        <div class="swipe-overlay nope">NOPE ✕</div>
+        <div class="swipe-card-rank">#${_swipeMatches.indexOf(m) + 1} Match</div>
+        <div class="swipe-card-title">${m.job_title}</div>
+        <div class="swipe-card-company">${m.company}</div>
+        <div class="swipe-score-bar"><div class="swipe-score-fill" style="width:${m.score}%;background:${color}"></div></div>
+        <div class="swipe-card-meta">
+            <span style="font-size:0.85rem;font-weight:700;color:${color}">${m.score}%</span>
+            ${m.location ? `<span>📍 ${m.location}</span>` : ''}
+            ${m.salary_range ? `<span>💰 ${m.salary_range}</span>` : ''}
+            ${m.category_match ? `<span style="color:var(--emerald)">✓ Category</span>` : ''}
+            <span>Coverage ${m.skill_coverage || 0}%</span>
         </div>
-    `).join('');
+        ${m.skill_overlap?.length ? `<div class="swipe-card-skills"><div class="skills-label">Matched Skills</div><div class="skill-tags">${renderSkillTags(m.skill_overlap, 'matched', 6)}</div></div>` : ''}
+        ${m.missing_skills?.length ? `<div class="swipe-card-skills"><div class="skills-label">Missing Skills</div><div class="skill-tags">${renderSkillTags(m.missing_skills, 'missing', 5)}</div></div>` : ''}
+    `;
+    return card;
+}
+
+function _attachDrag(card, match) {
+    let startX = 0, startY = 0, curX = 0, curY = 0, dragging = false;
+    const likeOv = card.querySelector('.swipe-overlay.like');
+    const nopeOv = card.querySelector('.swipe-overlay.nope');
+
+    function onStart(x, y) { startX = x; startY = y; dragging = true; card.classList.add('is-dragging'); }
+    function onMove(x, y) {
+        if (!dragging) return;
+        curX = x - startX; curY = y - startY;
+        const rot = curX * 0.08;
+        card.style.transform = `translate(${curX}px, ${curY}px) rotate(${rot}deg)`;
+        const ratio = Math.min(Math.abs(curX) / 80, 1);
+        likeOv.style.opacity = curX > 0 ? ratio : 0;
+        nopeOv.style.opacity = curX < 0 ? ratio : 0;
+    }
+    function onEnd() {
+        if (!dragging) return;
+        dragging = false;
+        card.classList.remove('is-dragging');
+        if (curX > 80) _commitSwipe(card, match, 'right');
+        else if (curX < -80) _commitSwipe(card, match, 'left');
+        else { card.style.transform = ''; likeOv.style.opacity = 0; nopeOv.style.opacity = 0; }
+        curX = 0; curY = 0;
+    }
+
+    card.addEventListener('mousedown', e => { if (e.button !== 0) return; onStart(e.clientX, e.clientY); });
+    window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+    window.addEventListener('mouseup', onEnd);
+    card.addEventListener('touchstart', e => { const t = e.touches[0]; onStart(t.clientX, t.clientY); }, { passive: true });
+    card.addEventListener('touchmove', e => { const t = e.touches[0]; onMove(t.clientX, t.clientY); }, { passive: true });
+    card.addEventListener('touchend', onEnd);
+}
+
+function _commitSwipe(card, match, dir) {
+    const tx = dir === 'right' ? 600 : -600;
+    card.style.transition = 'transform 0.35s ease, opacity 0.35s ease';
+    card.style.transform = `translate(${tx}px, 40px) rotate(${dir === 'right' ? 20 : -20}deg)`;
+    card.style.opacity = '0';
+    _swipeHistory.push({ match, dir, index: _swipeIndex });
+    if (dir === 'right') _swipeLiked.push(match);
+    _swipeIndex++;
+    setTimeout(_renderDeck, 350);
+}
+
+function swipeAction(dir) {
+    const deck = document.getElementById('swipe-deck');
+    const top = deck.lastElementChild;
+    if (!top || top.classList.contains('swipe-done') || _swipeIndex >= _swipeMatches.length) return;
+    _commitSwipe(top, _swipeMatches[_swipeIndex], dir);
+}
+
+function swipeUndo() {
+    if (!_swipeHistory.length) return;
+    const last = _swipeHistory.pop();
+    if (last.dir === 'right') _swipeLiked = _swipeLiked.filter(m => m !== last.match);
+    _swipeIndex = last.index;
+    _renderDeck();
+}
+
+function _renderLikedList() {
+    const el = document.getElementById('swipe-liked-list');
+    if (!_swipeLiked.length) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    el.innerHTML = `<h4>❤️ Liked Jobs (${_swipeLiked.length})</h4>` +
+        _swipeLiked.map(m => `<div class="swipe-liked-item">
+            <div><div class="job-name">${m.job_title}</div><div class="job-co">${m.company}</div></div>
+            <span class="match-score-badge ${scoreBadgeClass(m.score)}">${m.score}%</span>
+        </div>`).join('');
 }
 
 function renderFullAnalysis(data) {
