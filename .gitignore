@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+
+# Models & ML cache
+*.bin
+*.safetensors
+*.onnx
+~/.cache/huggingface/
+.cache/
+models/
+
+# ChromaDB
+chroma_db/
+*.chroma
+
+# Uploads & temp files
+uploads/
+temp/
+*.tmp
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResuMatch AI — Resume + Job Matching</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <div class="logo-icon">
+                    <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
+                        <rect width="28" height="28" rx="7" fill="#2563EB"/>
+                        <path d="M8 10h12M8 14h8M8 18h10" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <span class="brand-text">ResuMatch<span class="brand-accent">AI</span></span>
+            </div>
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="analyze">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    Analyze
+                </button>
+                <button class="nav-tab" data-tab="match">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    Match
+                </button>
+                <button class="nav-tab" data-tab="jobs">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+                    Jobs
+                </button>
+                <button class="nav-tab" data-tab="qa">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    Q&A
+                </button>
+                <button class="nav-tab" data-tab="dashboard">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                    Dashboard
+                </button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <!-- ANALYZE TAB -->
+            <section class="tab-panel active" id="panel-analyze">
+                <div class="panel-header">
+                    <h1>Resume Analyzer</h1>
+                    <p class="subtitle">Upload or paste a resume to extract skills, score quality, and get AI-powered insights.</p>
+                </div>
+                <div class="content-grid">
+                    <div class="input-card glass-card">
+                        <div class="card-header">
+                            <h3>Resume Input</h3>
+                            <div class="upload-area">
+                                <input type="file" id="file-analyze" accept=".pdf,.docx,.txt" hidden>
+                                <button class="btn btn-outline" onclick="document.getElementById('file-analyze').click()">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    Upload PDF / DOCX
+                                </button>
+                                <span class="file-name" id="file-name-analyze"></span>
+                            </div>
+                        </div>
+                        <textarea id="resume-text-analyze" class="text-input" placeholder="Or paste resume text here — include work experience, skills, education, and any relevant details..." rows="15"></textarea>
+                        <button class="btn btn-primary btn-lg" id="btn-analyze" onclick="analyzeResume()">
+                            <span class="btn-content">Analyze Resume</span>
+                            <div class="btn-loader hidden"></div>
+                        </button>
+                    </div>
+                    <div class="results-card glass-card" id="analyze-results">
+                        <div class="empty-state">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            <p>Analysis results will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MATCH TAB -->
+            <section class="tab-panel" id="panel-match">
+                <div class="panel-header">
+                    <h1>Job Matcher</h1>
+                    <p class="subtitle">Find the best matching jobs for a resume with skill gap analysis and career suggestions.</p>
+                </div>
+                <div class="content-grid">
+                    <div class="input-card glass-card">
+                        <div class="card-header">
+                            <h3>Resume Input</h3>
+                            <div class="upload-area">
+                                <input type="file" id="file-match" accept=".pdf,.docx,.txt" hidden>
+                                <button class="btn btn-outline" onclick="document.getElementById('file-match').click()">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    Upload
+                                </button>
+                                <span class="file-name" id="file-name-match"></span>
+                            </div>
+                        </div>
+                        <textarea id="resume-text-match" class="text-input" placeholder="Paste resume text here..." rows="13"></textarea>
+                        <div class="input-row">
+                            <label>Top results</label>
+                            <input type="number" id="match-topk" value="5" min="1" max="20" class="input-small">
+                        </div>
+                        <button class="btn btn-primary btn-lg" id="btn-match" onclick="findMatches()">
+                            <span class="btn-content">Find Matches</span>
+                            <div class="btn-loader hidden"></div>
+                        </button>
+                        <button class="btn btn-secondary btn-lg" id="btn-full-analysis" onclick="fullAnalysis()" style="margin-top:8px">
+                            <span class="btn-content">Full Analysis + Interview Qs</span>
+                            <div class="btn-loader hidden"></div>
+                        </button>
+                    </div>
+                    <div class="results-card glass-card" id="match-results">
+                        <div class="empty-state">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                            <p>Match results will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- JOBS TAB -->
+            <section class="tab-panel" id="panel-jobs">
+                <div class="panel-header">
+                    <h1>Job Database</h1>
+                    <p class="subtitle">Add and search job postings in the RAG-powered vector database.</p>
+                </div>
+                <div class="content-grid">
+                    <div class="input-card glass-card">
+                        <p class="section-label">Add Job Posting</p>
+                        <input type="text" id="job-title" class="text-input-single" placeholder="Job title (e.g. Senior Backend Engineer)">
+                        <input type="text" id="job-company" class="text-input-single" placeholder="Company name">
+                        <textarea id="job-desc" class="text-input" placeholder="Job description — responsibilities, tech stack, team context..." rows="6"></textarea>
+                        <input type="text" id="job-requirements" class="text-input-single" placeholder="Requirements, comma-separated (e.g. Python, AWS, 3+ years)">
+                        <input type="text" id="job-location" class="text-input-single" placeholder="Location (e.g. Remote, New York, NY)">
+                        <input type="text" id="job-salary" class="text-input-single" placeholder="Salary range (e.g. $120k–$160k)">
+                        <button class="btn btn-primary btn-lg" onclick="addJob()">Add Job</button>
+                        <hr class="divider">
+                        <p class="section-label">Search Jobs</p>
+                        <div class="search-row">
+                            <input type="text" id="job-search-query" class="text-input-single" placeholder="e.g. machine learning engineer">
+                            <button class="btn btn-secondary" onclick="searchJobs()">Search</button>
+                        </div>
+                        <button class="btn btn-outline btn-lg" onclick="listJobs()" style="margin-top:8px">List All Jobs</button>
+                    </div>
+                    <div class="results-card glass-card" id="jobs-results">
+                        <div class="empty-state">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+                            <p>Job listings will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- QA TAB -->
+            <section class="tab-panel" id="panel-qa">
+                <div class="panel-header">
+                    <h1>Recruiter Q&A</h1>
+                    <p class="subtitle">Ask natural language questions about a resume or job posting.</p>
+                </div>
+                <div class="content-grid">
+                    <div class="input-card glass-card">
+                        <p class="section-label">Context</p>
+                        <textarea id="qa-context" class="text-input" placeholder="Paste a resume or job description here as context for your questions..." rows="11"></textarea>
+                        <p class="section-label" style="margin-top:14px">Question</p>
+                        <div class="search-row">
+                            <input type="text" id="qa-question" class="text-input-single" placeholder="e.g. What programming languages does this candidate know?">
+                            <button class="btn btn-primary" onclick="askQuestion()">Ask</button>
+                        </div>
+                        <div class="quick-questions">
+                            <p class="label">Quick questions</p>
+                            <button class="chip" onclick="setQuestion('What is the candidate\'s experience level?')">Experience level</button>
+                            <button class="chip" onclick="setQuestion('What programming languages does this candidate know?')">Languages</button>
+                            <button class="chip" onclick="setQuestion('What is the candidate\'s educational background?')">Education</button>
+                            <button class="chip" onclick="setQuestion('Is this candidate suitable for a senior role?')">Seniority fit</button>
+                            <button class="chip" onclick="setQuestion('What are the key strengths of this candidate?')">Strengths</button>
+                        </div>
+                    </div>
+                    <div class="results-card glass-card" id="qa-results">
+                        <div class="empty-state">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            <p>Answers will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DASHBOARD TAB -->
+            <section class="tab-panel" id="panel-dashboard">
+                <div class="panel-header">
+                    <h1>Analytics Dashboard</h1>
+                    <p class="subtitle">Overview of the job database, category distribution, and skills in demand.</p>
+                </div>
+                <div class="dashboard-grid" id="dashboard-content">
+                    <div class="empty-state">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                        <p>Loading dashboard...</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/app.js"></script>
+</body>
+</html>
