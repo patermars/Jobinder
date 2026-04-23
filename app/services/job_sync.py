@@ -134,10 +134,14 @@ _scheduler = BackgroundScheduler()
 
 def start_scheduler():
     init_db()
+    stats = get_db_stats()
+    # Only run immediately if DB is empty, otherwise wait for the next 12-hour interval
+    next_run = datetime.now() if stats["total_jobs"] == 0 else None
     _scheduler.add_job(run_sync, "interval", hours=12, id="job_sync", replace_existing=True,
-                       next_run_time=datetime.now())
+                       next_run_time=next_run)
     _scheduler.start()
-    logger.info("Job sync scheduler started (runs now + every 12 hours)")
+    logger.info(f"Job sync scheduler started ({'immediate run' if next_run else 'skipped initial sync, DB has jobs'})")
+
 
 
 def stop_scheduler():

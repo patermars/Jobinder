@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ResuMatch AI — Resume + Job Matching</title>
+    <title>Jobinder — Resume + Job Matching</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -13,12 +13,11 @@
         <nav class="navbar">
             <div class="nav-brand">
                 <div class="logo-icon">
-                    <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
-                        <rect width="28" height="28" rx="7" fill="#2563EB"/>
-                        <path d="M8 10h12M8 14h8M8 18h10" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+                    <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+                        <path d="M8 10h12M8 14h8M8 18h10" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
                     </svg>
                 </div>
-                <span class="brand-text">ResuMatch<span class="brand-accent">AI</span></span>
+                <span class="brand-text">Job<span class="brand-accent">inder</span></span>
             </div>
             <div class="nav-tabs">
                 <button class="nav-tab active" data-tab="analyze">
@@ -89,16 +88,7 @@
                     <div class="input-card glass-card">
                         <div class="card-header">
                             <h3>Resume Input</h3>
-                            <div class="upload-area">
-                                <input type="file" id="file-match" accept=".pdf,.docx,.txt" hidden>
-                                <button class="btn btn-outline" onclick="document.getElementById('file-match').click()">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                    Upload
-                                </button>
-                                <span class="file-name" id="file-name-match"></span>
-                            </div>
                         </div>
-                        <textarea id="resume-text-match" class="text-input" placeholder="Paste resume text here..." rows="13"></textarea>
                         <div class="input-row">
                             <label>Top results</label>
                             <input type="number" id="match-topk" value="5" min="1" max="20" class="input-small">

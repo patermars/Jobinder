@@ -8,13 +8,34 @@ document.querySelectorAll('.nav-tab').forEach(tab => {
     });
 });
 
-['analyze', 'match'].forEach(id => {
-    const input = document.getElementById('file-' + id);
-    if (input) input.addEventListener('change', e => {
-        const name = e.target.files[0]?.name || '';
-        document.getElementById('file-name-' + id).textContent = name;
-    });
+// shared resume state
+let _resumeFile = null, _resumeText = '';
+
+const _fileAnalyze = document.getElementById('file-analyze');
+const _textAnalyze = document.getElementById('resume-text-analyze');
+
+_fileAnalyze.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    _resumeFile = file;
+    _resumeText = '';
+    document.getElementById('file-name-analyze').textContent = file.name;
+    _textAnalyze.value = '';
+    _clearMatchCache();
 });
+
+_textAnalyze.addEventListener('input', e => {
+    _resumeText = e.target.value;
+    _resumeFile = null;
+    document.getElementById('file-name-analyze').textContent = '';
+    _clearMatchCache();
+});
+
+function _clearMatchCache() {
+    Object.keys(localStorage)
+        .filter(k => k.startsWith('jb_cache_'))
+        .forEach(k => localStorage.removeItem(k));
+}
 
 function toast(msg, type = 'info') {
     const el = document.createElement('div');
@@ -43,12 +64,10 @@ async function apiGet(url) {
     return res.json();
 }
 
-function getResumeInput(suffix) {
-    const fileInput = document.getElementById('file-' + suffix);
-    const textInput = document.getElementById('resume-text-' + suffix);
+function getResumeInput() {
     const fd = new FormData();
-    if (fileInput?.files?.length) fd.append('file', fileInput.files[0]);
-    else if (textInput?.value?.trim()) fd.append('text', textInput.value.trim());
+    if (_resumeFile) fd.append('file', _resumeFile);
+    else if (_resumeText.trim()) fd.append('text', _resumeText.trim());
     else return null;
     return fd;
 }
@@ -99,7 +118,7 @@ function renderSkillTags(skills, cls, limit = 0) {
 }
 
 async function analyzeResume() {
-    const fd = getResumeInput('analyze');
+    const fd = getResumeInput();
     if (!fd) return toast('Provide a resume file or text', 'error');
     setLoading('btn-analyze', true);
     try {
@@ -161,12 +180,23 @@ function renderAnalyzeResults(d) {
 }
 
 async function findMatches() {
-    const fd = getResumeInput('match');
+    const fd = getResumeInput();
     if (!fd) return toast('Provide a resume', 'error');
-    fd.append('top_k', document.getElementById('match-topk').value);
+    const topK = document.getElementById('match-topk').value;
+    
+    // check cache
+    const cached = _cacheGet('match', topK);
+    if (cached) {
+        renderMatchResults(cached.data.matches);
+        toast(`Found ${cached.data.count} matches (cached ${_cacheAge(cached.ts)})`, 'info');
+        return;
+    }
+
+    fd.append('top_k', topK);
     setLoading('btn-match', true);
     try {
         const data = await apiPost('/api/match/find', fd);
+        _cacheSet('match', topK, data);
         renderMatchResults(data.matches);
         toast(`Found ${data.count} matches`, 'success');
     } catch (e) { toast(e.message, 'error'); }
@@ -174,19 +204,65 @@ async function findMatches() {
 }
 
 async function fullAnalysis() {
-    const fd = getResumeInput('match');
+    const fd = getResumeInput();
     if (!fd) return toast('Provide a resume', 'error');
-    fd.append('top_k', document.getElementById('match-topk').value);
+    const topK = document.getElementById('match-topk').value;
+
+    // check cache
+    const cached = _cacheGet('full', topK);
+    if (cached) {
+        renderFullAnalysis(cached.data);
+        toast(`Loaded from cache (${_cacheAge(cached.ts)})`, 'info');
+        return;
+    }
+
+    fd.append('top_k', topK);
     setLoading('btn-full-analysis', true);
     try {
         const data = await apiPost('/api/match/full-analysis', fd);
+        _cacheSet('full', topK, data);
         renderFullAnalysis(data);
         toast('Full analysis complete', 'success');
     } catch (e) { toast(e.message, 'error'); }
     setLoading('btn-full-analysis', false);
 }
 
-// ── Swipe Deck ──────────────────────────────────────────────────────────────
+// ── Result Cache (12h TTL, keyed by resume + top_k) ─────────────────────────
+const CACHE_TTL = 12 * 60 * 60 * 1000;
+
+function _cacheKey(type, resumeKey, topK) {
+    return `jb_cache_${type}_${topK}_${resumeKey}`;
+}
+
+function _resumeKey() {
+    // use file name+size or first 120 chars of text as identity
+    if (_resumeFile) return `${_resumeFile.name}_${_resumeFile.size}`;
+    return _resumeText.trim().slice(0, 120);
+}
+
+function _cacheGet(type, topK) {
+    try {
+        const raw = localStorage.getItem(_cacheKey(type, _resumeKey(), topK));
+        if (!raw) return null;
+        const { ts, data } = JSON.parse(raw);
+        if (Date.now() - ts > CACHE_TTL) return null;
+        return { data, ts };
+    } catch { return null; }
+}
+
+function _cacheSet(type, topK, data) {
+    try {
+        localStorage.setItem(_cacheKey(type, _resumeKey(), topK), JSON.stringify({ ts: Date.now(), data }));
+    } catch { /* storage full — skip */ }
+}
+
+function _cacheAge(ts) {
+    const mins = Math.floor((Date.now() - ts) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    return `${Math.floor(mins / 60)}h ${mins % 60}m ago`;
+}
+
 let _swipeMatches = [], _swipeIndex = 0, _swipeLiked = [], _swipeHistory = [];
 
 function renderMatchResults(matches) {
@@ -221,11 +297,21 @@ function _renderDeck() {
         _renderLikedList();
         return;
     }
-    // render top 3 cards (stacked)
-    remaining.slice(0, 3).reverse().forEach(m => {
-        deck.appendChild(_buildCard(m));
+    // render back cards first (bottom of stack), top card last
+    remaining.slice(0, 3).reverse().forEach((m, i) => {
+        const card = _buildCard(m);
+        // i=2 is back, i=1 is middle, i=0 is top card
+        card.dataset.stackPos = i;
+        deck.appendChild(card);
     });
-    _attachDrag(deck.lastElementChild, remaining[0]);
+    // top card is the last appended (highest z-index via CSS :first-child won't work)
+    // so we manually set z-index
+    Array.from(deck.children).forEach((c, i) => {
+        c.style.zIndex = i; // last child = highest z
+    });
+    const topCard = deck.lastElementChild;
+    topCard.style.transform = '';
+    _attachDrag(topCard, remaining[0]);
 }
 
 function _buildCard(m) {
@@ -253,36 +339,53 @@ function _buildCard(m) {
 }
 
 function _attachDrag(card, match) {
-    let startX = 0, startY = 0, curX = 0, curY = 0, dragging = false;
+    let startX = 0, startY = 0, curX = 0, curY = 0, active = false;
     const likeOv = card.querySelector('.swipe-overlay.like');
     const nopeOv = card.querySelector('.swipe-overlay.nope');
 
-    function onStart(x, y) { startX = x; startY = y; dragging = true; card.classList.add('is-dragging'); }
-    function onMove(x, y) {
-        if (!dragging) return;
-        curX = x - startX; curY = y - startY;
-        const rot = curX * 0.08;
-        card.style.transform = `translate(${curX}px, ${curY}px) rotate(${rot}deg)`;
+    card.addEventListener('pointerdown', e => {
+        if (e.button !== undefined && e.button !== 0) return;
+        card.setPointerCapture(e.pointerId);
+        startX = e.clientX;
+        startY = e.clientY;
+        curX = 0; curY = 0;
+        active = true;
+        card.classList.add('is-dragging');
+    });
+
+    card.addEventListener('pointermove', e => {
+        if (!active) return;
+        curX = e.clientX - startX;
+        curY = e.clientY - startY;
+        card.style.transform = `translate(${curX}px, ${curY}px) rotate(${curX * 0.08}deg)`;
         const ratio = Math.min(Math.abs(curX) / 80, 1);
         likeOv.style.opacity = curX > 0 ? ratio : 0;
         nopeOv.style.opacity = curX < 0 ? ratio : 0;
-    }
-    function onEnd() {
-        if (!dragging) return;
-        dragging = false;
+    });
+
+    card.addEventListener('pointerup', e => {
+        if (!active) return;
+        active = false;
         card.classList.remove('is-dragging');
+        card.releasePointerCapture(e.pointerId);
         if (curX > 80) _commitSwipe(card, match, 'right');
         else if (curX < -80) _commitSwipe(card, match, 'left');
-        else { card.style.transform = ''; likeOv.style.opacity = 0; nopeOv.style.opacity = 0; }
-        curX = 0; curY = 0;
-    }
+        else {
+            card.style.transition = 'transform 0.3s ease';
+            card.style.transform = '';
+            likeOv.style.opacity = 0;
+            nopeOv.style.opacity = 0;
+            setTimeout(() => card.style.transition = '', 300);
+        }
+    });
 
-    card.addEventListener('mousedown', e => { if (e.button !== 0) return; onStart(e.clientX, e.clientY); });
-    window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
-    window.addEventListener('mouseup', onEnd);
-    card.addEventListener('touchstart', e => { const t = e.touches[0]; onStart(t.clientX, t.clientY); }, { passive: true });
-    card.addEventListener('touchmove', e => { const t = e.touches[0]; onMove(t.clientX, t.clientY); }, { passive: true });
-    card.addEventListener('touchend', onEnd);
+    card.addEventListener('pointercancel', () => {
+        active = false;
+        card.classList.remove('is-dragging');
+        card.style.transform = '';
+        likeOv.style.opacity = 0;
+        nopeOv.style.opacity = 0;
+    });
 }
 
 function _commitSwipe(card, match, dir) {
