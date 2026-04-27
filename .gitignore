@@ -9,7 +9,7 @@ dist/
 build/
 
 # Environment
-.env
+# .env
 
 # Models & ML cache
 *.bin
